@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+firmware/**/secrets.h
+*.log
+coverage/
+dist/
+.local/
+frontend/artifacts/
+*.md
+!README.md

@@ -1,0 +1,33 @@
+{
+  "name": "school-gate-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stage 1: device communication prototype",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "db:check": "node --env-file=.env scripts/check-database.js",
+    "scan": "node --env-file=.env scripts/record-scan.js",
+    "db:local": "node scripts/local-db.mjs",
+    "db:migrate": "node --env-file=.env scripts/migrate.js",
+    "db:seed": "node --env-file=.env scripts/seed-accounts.js",
+    "setup": "node scripts/setup-env.js",
+    "dev": "node --watch --env-file=.env src/server.js",
+    "start": "node --env-file=.env src/server.js",
+    "test": "node --env-file=.env --test src/features/devices/device.test.js src/features/system/system.test.js src/features/auth/auth.integration.test.js src/features/guard/guard.integration.test.js",
+    "device:test": "node --env-file=.env scripts/device-test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "pg": "^8.23.0",
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "embedded-postgres": "17.10.0-beta.17"
+  }
+}
