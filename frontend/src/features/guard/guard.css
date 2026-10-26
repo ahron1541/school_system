@@ -30,6 +30,12 @@
 .scan-display main { width:min(1100px,100%); margin:auto; padding:24px 32px; }
 .scan-display .scan-identity { grid-template-columns:minmax(200px,380px) minmax(0,1fr); }
 .scan-display .scan-details h2 { font-size:40px; }
+.public-identity .scan-details { min-width:0;overflow-wrap:anywhere; }
+.reader-light { display:block;width:14px;height:14px;border-radius:50%;margin-bottom:20px;border:2px solid var(--surface,#fff);outline:1px solid var(--border); }
+.reader-light-green { background:#24734b; }.reader-light-red { background:#c33135; }.reader-light-amber { background:#a97513; }
+.public-identity .reader-program { font-size:24px;line-height:1.4;margin-top:12px; }
+.public-identity .reader-enrollment { font-size:18px;line-height:1.5;margin-top:12px; }
+@media(max-width:700px){.public-identity .reader-light{margin-inline:auto}}
 .scan-display footer { border-top:1px solid var(--border); border-bottom:0; color:var(--muted); font-size:13px; }
 .student-photo-editor { display:flex; flex-direction:column; align-items:flex-start; gap:12px; border-top:1px solid var(--border); padding-top:16px; }
 .student-photo-editor img { width:120px; height:160px; object-fit:contain; }

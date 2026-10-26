@@ -1,0 +1,13 @@
+.topbar-actions{display:flex;align-items:center;gap:12px;flex:none}
+.case-bell{position:relative}.case-bell-count{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#ae3036;color:#fff;font-size:10px;line-height:18px;text-align:center}
+.case-nav-count{display:inline-block;min-width:20px;margin-left:8px;padding:1px 5px;background:var(--surface,#fff);border:1px solid var(--border);border-radius:4px;font-size:11px;text-align:center}
+.case-inbox-count{margin-bottom:16px;color:var(--muted)}
+.case-inbox>button{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;padding:16px 32px 16px 0;border:0;border-bottom:1px solid var(--border);background:transparent;color:inherit;overflow-wrap:anywhere}
+.case-inbox>button:hover{background:var(--soft)}.case-inbox>button>svg{position:absolute;right:4px;top:20px}.case-inbox span,.case-inbox time{font-size:12px;color:var(--muted)}
+.case-status-tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:20px}
+.case-status-tabs button{display:flex;align-items:center;gap:8px;min-height:44px;border:0;border-bottom:3px solid transparent;padding:10px 14px;background:transparent;color:var(--muted);font:inherit;font-size:14px}
+.case-status-tabs button.selected{border-bottom-color:var(--accent);color:var(--accent);font-weight:600}.case-status-tabs button span{font-size:12px;background:var(--soft);border-radius:4px;padding:2px 6px}
+.case-new{display:inline-block;margin-left:8px;font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px;background:var(--soft);color:var(--accent)}
+.case-history{border-top:1px solid var(--border);margin-top:24px;padding-top:20px}.case-history h3{margin-bottom:16px}
+.case-history ol{list-style:none;margin:0;padding:0}.case-history li{border-left:2px solid var(--border);padding:0 0 20px 16px;display:flex;flex-direction:column;gap:6px;overflow-wrap:anywhere}.case-history li>span{font-size:12px;color:var(--muted)}.case-history li p{white-space:pre-wrap;line-height:1.6}
+.case-remark-form{display:flex;flex-direction:column;gap:10px;margin-top:16px}.case-remark-form textarea{resize:vertical;min-height:90px;width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;background:var(--surface,#fff);color:inherit}.case-remark-form>div,.case-history-pages{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}

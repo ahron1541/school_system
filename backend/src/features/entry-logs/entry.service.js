@@ -45,8 +45,8 @@ function createEntryService(db, config, devices) {
     return result;
   }
   async function list(date) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0,10) !== date) throw new ApiError(422, 'INVALID_DATE', 'Choose a valid date.');
-    const { rows } = await db.query("SELECT e.id AS log_id,e.direction,e.device_id,e.scanned_at,s.*,EXISTS(SELECT 1 FROM violations v WHERE v.student_id=s.id AND v.status='ACTIVE') AS alert FROM entry_logs e JOIN students s ON s.id=e.student_id WHERE e.scanned_at >= ($1::date::timestamp AT TIME ZONE 'Asia/Manila') AND e.scanned_at < (($1::date+1)::timestamp AT TIME ZONE 'Asia/Manila') ORDER BY e.scanned_at DESC LIMIT 1000", [date]);
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date.startsWith('0000') || Number.isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0,10) !== date) throw new ApiError(422, 'INVALID_DATE', 'Choose a valid date.');
+    const { rows } = await db.query("SELECT e.id AS log_id,e.direction,e.device_id,e.scanned_at,s.*,EXISTS(SELECT 1 FROM student_photos p WHERE p.student_id=s.id) AS has_photo,EXISTS(SELECT 1 FROM violations v WHERE v.student_id=s.id AND v.status='ACTIVE') AS alert FROM entry_logs e JOIN students s ON s.id=e.student_id WHERE e.scanned_at >= ($1::date::timestamp AT TIME ZONE 'Asia/Manila') AND e.scanned_at < (($1::date+1)::timestamp AT TIME ZONE 'Asia/Manila') ORDER BY e.scanned_at DESC,e.id DESC LIMIT 1000", [date]);
     return rows.map((row) => ({ id: row.log_id, person: studentView(row), direction: row.direction, alert: row.alert, gate: row.device_id, scannedAt: row.scanned_at, time: new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(row.scanned_at)) }));
   }
   return { scan, list };

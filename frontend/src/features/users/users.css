@@ -1,0 +1,25 @@
+.accounts-toolbar { display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+.accounts-toolbar .search-field { flex:1 1 240px; margin-bottom:0; }
+.accounts-toolbar>label:not(.search-field), .accounts-pagination>label { display:flex; flex-direction:column; gap:8px; font-size:12px; color:var(--muted); }
+.accounts-toolbar select { min-width:140px; max-width:100%; }
+.accounts-table table { min-width:720px; }
+.accounts-table td:first-child { white-space:normal; min-width:180px; max-width:320px; overflow-wrap:anywhere; }
+.accounts-table td:first-child strong { font-weight:500; }
+.account-row-actions { display:flex; gap:8px; }
+.account-row-actions .icon-button { width:36px; height:36px; }
+.account-state { color:var(--muted); }
+.account-state.is-active { color:var(--accent); }
+.accounts-pagination { flex-wrap:wrap; gap:16px; }
+.accounts-pagination>label { flex-direction:row; align-items:center; }
+.accounts-pagination select { width:80px; }
+.account-dialog { width:min(520px,calc(100% - 32px)); }
+.account-dialog .dialog-top h2 { font-size:20px; }
+.account-target { margin:0 0 24px; overflow-wrap:anywhere; }
+.account-target span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+.account-consequence { font-size:13px; color:var(--muted); line-height:1.6; margin:0; }
+.field-help { font-size:12px; color:var(--muted); margin:-8px 0 0; }
+.field-error { font-size:12px; color:#b42318; }
+[data-theme=dark] .field-error { color:#ffb4ab; }
+.required-password { max-width:560px; margin:0 auto; padding:32px 24px; }
+.required-password .account-form { max-width:none; }
+@media(max-width:600px) { .accounts-toolbar>label:not(.search-field) { flex:1 1 130px; } .accounts-toolbar select { width:100%; min-width:0; } .accounts-pagination { align-items:flex-start; } .account-dialog .form-actions { flex-wrap:wrap; } }

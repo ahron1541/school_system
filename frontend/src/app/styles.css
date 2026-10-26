@@ -131,7 +131,7 @@ tr:hover td { background: #fafbfa; }
 .status-dot { width: 5px; height: 5px; background: currentColor; border-radius: 50%; flex-shrink: 0; }
 .status-connected, .status-online { color: #387c59; }
 .status-not_configured, .status-invalid_configuration { color: #8d6825; }
-.status-disconnected, .status-offline { color: #b3544d; }
+.status-disconnected, .status-offline, .status-degraded { color: #b3544d; }
 .status-note { font-size: 12px; line-height: 1.8; color: #737b82; margin: 15px 0; }
 .latest-section { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 22px; }
 .sample-label { border: 1px solid #e7e9e8; color: #72797f; padding: 3px 5px; font-size: 10px; border-radius: 3px; }

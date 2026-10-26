@@ -2,6 +2,7 @@ import { Database, Server, Radio, CheckCircle2, AlertCircle } from 'lucide-react
 import { Status } from '../../../shared/components/Status';
 import { CheckButton, systemStates } from '../components/SystemPanel';
 import { LoadingRegion, Skeleton } from '../../../shared/components/Loading';
+import SemesterSettings from '../components/SemesterSettings';
 
 const descriptions = {
   connected: 'The database accepted a connection and completed a read-only check.',
@@ -32,6 +33,7 @@ export default function SystemPage({ system }) {
       </div>
     </section>
     <section className="section-block"><div className="section-heading"><h2>Data & access</h2></div><dl className="settings-list"><div><dt>Attendance storage</dt><dd>Local PostgreSQL</dd></div><div><dt>Device test storage</dt><dd>Temporary memory</dd></div><div><dt>Workspace access</dt><dd>Administrator only</dd></div><div><dt>Pending sync changes</dt><dd>{system.data?.sync?.pending ?? "Unavailable"}</dd></div><div><dt>Reporting timezone</dt><dd>Asia/Manila</dd></div></dl></section>
+    <SemesterSettings/>
     <div className="footnote"><CheckCircle2 size={15} /><span>Local records are saved without internet. Supabase synchronization is not configured.</span></div>
   </>;
 }

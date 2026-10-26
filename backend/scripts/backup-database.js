@@ -1,0 +1,10 @@
+const {spawnSync}=require('node:child_process');
+const {mkdirSync,existsSync}=require('node:fs');
+const path=require('node:path');
+const url=new URL(process.env.DATABASE_URL);
+const executable=process.env.PG_DUMP_PATH || 'C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe';
+if(!existsSync(executable)) throw new Error('Set PG_DUMP_PATH to your PostgreSQL pg_dump executable.');
+const directory=path.resolve(__dirname,'../../.local/backups');mkdirSync(directory,{recursive:true});
+const file=path.join(directory,'before-gate-'+new Date().toISOString().replace(/[:.]/g,'-')+'.dump');
+const result=spawnSync(executable,['--format=custom','--schema=public','--no-owner','--file',file,'--host',url.hostname,'--port',url.port||'5432','--username',decodeURIComponent(url.username),'--dbname',url.pathname.slice(1)],{env:{...process.env,PGPASSWORD:decodeURIComponent(url.password)},windowsHide:true,encoding:'utf8'});
+if(result.status!==0){console.error('[BACKUP] Database backup failed. No migration was applied.');process.exitCode=1;}else console.log('[BACKUP] '+file);

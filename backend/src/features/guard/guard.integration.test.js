@@ -54,22 +54,33 @@ test('guard post: real photos, restricted live display, reporting, expiry and fa
   assert.equal((await request('/violations/' + reported.body.data.id + '/clear', 'PATCH', {}, guard)).status, 403);
   const scan = { uid: 'ABCDEF01', deviceId: 'gate-01', eventId: randomUUID() };
   assert.equal((await request('/entry-logs/scan', 'POST', scan)).body.data.status, 'alert');
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+  assert.equal((await request('/entry-logs?date=' + date, 'GET', undefined, guard)).body.data[0].person.photo, `/api/students/${student.id}/photo`, 'activity returns the stored photo reference');
+  for (const query of ['date=0000-01-01', 'date=2026-02-30', 'date=2026-01-01&date=2026-01-02', 'date=invalid']) {
+    assert.equal((await request('/entry-logs?' + query, 'GET', undefined, guard)).status, 422);
+  }
   const dashboard = (await request('/guard/dashboard', 'GET', undefined, guard)).body.data;
   assert.equal(dashboard.scan.person.id, student.id); assert.equal(dashboard.totals.entries, 1); assert.equal(dashboard.totals.alerts, 1);
   assert.equal(dashboard.device.connection, 'online');
   const display = (await request('/guard/display', 'GET', undefined, guard)).body.data;
-  assert.equal(display.scan.status, 'ok'); assert.deepEqual(Object.keys(display.scan.person).sort(), ['name','photo']);
+  assert.equal(display.scan.indicator, 'red'); assert.deepEqual(Object.keys(display.scan.person).sort(), ['active','course','name','photo']);
+  assert.equal(display.scan.person.name,'Guard');assert.equal(display.scan.person.course,'IT');assert.equal(display.scan.person.active,true);
+  assert.deepEqual(Object.keys(display.scan).sort(),['expiresAt','id','indicator','person']);
+  assert.ok(!JSON.stringify(display).includes('Guard Test Student'));
+  await db.query('INSERT INTO student_profiles(student_id,data) VALUES($1,$2)',[student.id,{givenName:'Maria Sofia',lastName:'Private Surname'}]);
+  const namedDisplay=(await request('/guard/display','GET',undefined,guard)).body.data;
+  assert.equal(namedDisplay.scan.person.name,'Maria Sofia');assert.ok(!JSON.stringify(namedDisplay).includes('Private Surname'));
   assert.ok(!JSON.stringify(display).includes('Private incident')); assert.ok(!JSON.stringify(display).includes('ABCDEF01'));
   const firstId = dashboard.scan.id;
   await request('/entry-logs/scan', 'POST', scan);
   assert.equal((await request('/guard/dashboard', 'GET', undefined, guard)).body.data.scan.id, firstId);
   await request('/entry-logs/scan', 'POST', { ...scan, eventId: randomUUID() });
-  assert.equal((await request('/guard/display', 'GET', undefined, guard)).body.data.scan.status, 'ignored');
+  assert.equal((await request('/guard/display', 'GET', undefined, guard)).body.data.scan.indicator, 'red');
   await request('/entry-logs/scan', 'POST', { ...scan, uid: 'FFFFFFFF', eventId: randomUUID() });
   assert.equal((await request('/guard/display', 'GET', undefined, guard)).body.data.scan.person, null);
   await db.query('UPDATE students SET active=false WHERE id=$1', [student.id]);
   await request('/entry-logs/scan', 'POST', { ...scan, eventId: randomUUID() });
-  assert.equal((await request('/guard/display', 'GET', undefined, guard)).body.data.scan.message, 'Please see the guard.');
+  assert.equal((await request('/guard/display', 'GET', undefined, guard)).body.data.scan.person.active, false);
   await db.query("UPDATE scan_events SET received_at=now()-interval '13 seconds'");
   assert.equal((await request('/guard/display', 'GET', undefined, guard)).body.data.scan, null);
   assert.equal((await request('/guard/dashboard', 'GET', undefined, guard)).body.data.totals.entries, 1);

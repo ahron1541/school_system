@@ -36,7 +36,7 @@ async function scan(card = uid) {
 }
 async function fits(target) { assert.ok(await target.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No page-level horizontal overflow'); }
 try {
-  for (const role of ['ADMIN','GUARD']) {
+  for (const role of ['ADMIN','GUARD','DISCIPLINE']) {
     const id = randomUUID(); actors.push(id);
     await db.query('INSERT INTO users(id,username,full_name,password_hash,role) VALUES($1,$2,$3,$4,$5)', [id,'test_' + role.toLowerCase() + '_' + suffix,'Browser Test ' + role,await bcrypt.hash(password,4),role]);
   }
@@ -96,6 +96,8 @@ try {
   }
   await display.getByRole('button', { name: 'Switch to dark mode' }).click();
   await display.screenshot({ path: 'artifacts/scan-display-dark.png', fullPage: true });
+  const heartbeat = await context.request.put(base + '/api/devices/' + env.DEVICE_ID + '/heartbeat', { headers: { 'X-Device-Key': env.DEVICE_API_KEY }, data: {} });
+  assert.equal(heartbeat.status(), 200);
   await expect(display.getByRole('heading', { name: 'Ready for the next scan' })).toBeVisible({ timeout: 18000 });
   await scan('FFFFFFFF');
   await expect(display.getByText('Card not registered', { exact: true })).toBeVisible();
@@ -114,8 +116,34 @@ try {
   await page.screenshot({ path: 'artifacts/guard-dark.png', fullPage: true });
   await page.getByRole('button', { name: 'Log out', exact: true }).click();
   await expect(display.getByRole('heading', { name: 'Display locked', exact: true })).toBeVisible({ timeout: 10000 });
+  const broadRequests = [];
+  page.on('request', (request) => { if (new URL(request.url()).pathname === '/api/entry-logs') broadRequests.push(request.url()); });
+  await login('DISCIPLINE');
+  await expect(page.getByRole('heading', { name: 'Violations', exact: true })).toBeVisible();
+  assert.equal(await page.getByRole('link', { name: 'Gate activity', exact: true }).count(), 0);
+  await page.getByRole('combobox', { name:'Student',exact:true }).selectOption(studentId);
+  await page.getByLabel('Description', { exact:true }).fill('Officer browser verification incident');
+  await page.getByRole('button', { name:'Record violation',exact:true }).click();
+  await expect(page.getByText('Violation recorded.', { exact:true })).toBeVisible();
+  const officerReport = (await db.query("SELECT v.id,u.role FROM violations v JOIN users u ON u.id=v.reported_by WHERE v.student_id=$1 AND v.description=$2",[studentId,'Officer browser verification incident'])).rows;
+  assert.equal(officerReport.length,1); assert.equal(officerReport[0].role,'DISCIPLINE');
+  assert.equal((await context.request.get(base+'/api/entry-logs?date=2026-09-22')).status(), 403);
+  await page.goto(base+'/#activity');
+  await expect(page.getByRole('heading', { name: 'Violations', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Review gate records', exact: true }).first().click();
+  await expect(page.getByRole('dialog', { name: 'Case gate records', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Case gate records', exact: true }).locator('tbody tr')).toHaveCount(2);
+  for (const width of [1440,390]) { await page.setViewportSize({ width, height: 844 }); await fits(page); await page.screenshot({ path: 'artifacts/discipline-case-'+width+'.png', fullPage: true }); }
+  await page.getByLabel('Gate record date', { exact: true }).fill('1900-01-01');
+  await expect(page.getByText('No gate records for this student on the selected date.', { exact: true })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  await page.setViewportSize({ width:1440,height:1000 });
+  await page.getByRole('link', { name:'Students',exact:true }).click();
+  await page.locator('.person-button').filter({ hasText:'Guard Browser Verification' }).click();
+  assert.equal(await page.getByRole('heading', { name:'Recent gate activity',exact:true }).count(), 0);
+  assert.equal(broadRequests.length, 0, 'discipline workspace never requests the global gate feed');
   assert.deepEqual(errors, []);
-  console.log('PASS: guard dashboard, uploaded photo, two-window scan, report/export, mobile/tablet, themes, expiry, unknown card, offline recovery and logout lock.');
+  console.log('PASS: guard workflow and discipline case-only gate records, date filtering, responsive modal, direct-route/API denial and no global feed requests.');
 } finally {
   await context.setOffline(false);
   if (!studentId) studentId = (await db.query('SELECT id FROM students WHERE student_no=$1', [studentNo])).rows[0]?.id;

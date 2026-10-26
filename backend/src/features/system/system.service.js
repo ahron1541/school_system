@@ -1,4 +1,5 @@
 const { Client } = require('pg');
+const {gateHealth}=require('../gate/health');
 
 function probeDatabase(databaseUrl) {
   if (!databaseUrl) return Promise.resolve({ state: 'not_configured', latencyMs: null });
@@ -46,7 +47,7 @@ function createSystemService(config, devices, probe = probeDatabase, db) {
       }
       await pending;
     }
-    const device = devices.status();
+    const device = config.gateEnabled&&db?await gateHealth(db,config.deviceId):devices.status();
     const pendingSync = db ? Number((await db.query('SELECT count(*) FROM sync_outbox WHERE synced_at IS NULL')).rows[0].count) : 0;
     return {
       checkedAt: new Date().toISOString(),

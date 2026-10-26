@@ -1,0 +1,102 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {randomUUID,randomBytes}=require('node:crypto');
+const {readdir,readFile}=require('node:fs/promises');
+const path=require('node:path');
+const {Client}=require('pg');
+const bcrypt=require('bcryptjs');
+const {createDatabase}=require('../../database/client');
+const {createApp}=require('../../app/app');
+const {validateReport,listFilters}=require('./violations.validation');
+
+test('offense validation bounds filters, dates and conditional fields',()=>{
+  const base={studentId:randomUUID(),offenseCode:'OTHER',customOffense:"José O'Connor <script>alert(1)</script>"};
+  assert.equal(validateReport(base).customOffense,base.customOffense);
+  assert.equal(validateReport({...base,offenseCode:'NO_ID',reportedBy:randomUUID(),status:'CLEARED'}).customOffense,null);
+  for(const input of [{...base,customOffense:''},{...base,offenseDate:'2026-02-30'},{...base,validFrom:'2026-10-20',validUntil:'2026-10-19'},{...base,validFrom:'2026-10-19'},{...base,remarks:'x'.repeat(2001)}])assert.throws(()=>validateReport(input),{status:422});
+  for(const input of [{page:'0'},{page:'100001'},{pageSize:'99999999'},{sort:'name; DROP TABLE students'},{status:['ACTIVE']},{search:'x'.repeat(121)},{to:'2026-02-30'}])assert.throws(()=>listFilters(input),{status:422});
+});
+
+test('offenses: real database, role boundaries, pagination, injection, retries and clearance', {skip:!process.env.DATABASE_URL},async t=>{
+  const admin=new Client({connectionString:process.env.DATABASE_URL});await admin.connect();
+  const schema='test_offense_'+randomUUID().replaceAll('-','');await admin.query('CREATE SCHEMA '+schema);
+  const url=new URL(process.env.DATABASE_URL);url.searchParams.set('options','-c search_path='+schema);
+  const db=createDatabase(url.toString());let server;
+  t.after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));await db.close();await admin.query('DROP SCHEMA '+schema+' CASCADE');await admin.end();});
+  const directory=path.join(__dirname,'../../database/migrations');for(const file of(await readdir(directory)).filter(file=>file.endsWith('.sql')).sort())await db.query(await readFile(path.join(directory,file),'utf8'));
+  const password=randomBytes(20).toString('hex');const actors={};
+  for(const role of ['ADMIN','GUARD','DISCIPLINE','REGISTRAR']){actors[role]=randomUUID();await db.query('INSERT INTO users(id,username,full_name,password_hash,role) VALUES($1,$2,$3,$4,$5)',[actors[role],role.toLowerCase(),role,await bcrypt.hash(password,4),role]);}
+  const student=randomUUID();await db.query("INSERT INTO students(id,student_no,full_name,course,year_level) VALUES($1,'OFFENSE-TEST',$2,'IT','1')",[student,"José O'Connor"]);
+  const origins=[];server=createApp({appOrigins:origins,deviceKey:randomBytes(32).toString('hex'),deviceId:'gate-01'},{db}).listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));const base='http://127.0.0.1:'+server.address().port;origins.push(base);
+  async function request(route,method='GET',body,session,extra={}){const res=await fetch(base+'/api'+route,{method,headers:{Origin:base,...(body!==undefined?{'Content-Type':'application/json'}:{}),...(session?{Cookie:session.cookie,'X-CSRF-Token':session.csrf}:{}),...extra},body:body===undefined?undefined:JSON.stringify(body)});return {status:res.status,headers:res.headers,body:await res.json()};}
+  const sessions={};for(const role of Object.keys(actors)){const result=await request('/auth/login','POST',{username:role.toLowerCase(),password});sessions[role]={cookie:result.headers.get('set-cookie').split(';')[0],csrf:result.body.data.csrfToken};}
+  assert.equal((await request('/violations')).status,401);
+  assert.equal((await request('/violations/recent-students')).status,401);
+  assert.equal((await request('/violations/recent-students','GET',undefined,sessions.REGISTRAR)).status,403);
+  assert.deepEqual((await request('/violations/recent-students','GET',undefined,sessions.GUARD)).body.data,[]);
+  const recentIds=[];
+  for(let i=0;i<10;i++){
+    const id=randomUUID();recentIds.push(id);
+    await db.query('INSERT INTO students(id,student_no,full_name,course,year_level) VALUES($1,$2,$3,$4,$5)',[id,'RECENT-'+i,'Recent Student '+i,'IT','1']);
+    await db.query("INSERT INTO scan_events(id,device_id,event_id,uid,result,student_id,received_at) VALUES($1,'gate-01',$2,'ABCDEF01',$3,$4,now()-($5::int * interval '1 minute'))",[randomUUID(),randomUUID(),{status:'ok'},id,i+1]);
+  }
+  await db.query("INSERT INTO scan_events(id,device_id,event_id,uid,result,student_id) VALUES($1,'gate-01',$2,'ABCDEF01',$3,$4)",[randomUUID(),randomUUID(),{status:'ok'},recentIds[5]]);
+  await db.query("INSERT INTO scan_events(id,device_id,event_id,uid,result) VALUES($1,'gate-01',$2,'FFFFFFFF',$3)",[randomUUID(),randomUUID(),{status:'unknown'}]);
+  await db.query("INSERT INTO scan_events(id,device_id,event_id,uid,result,student_id,received_at) VALUES($1,'gate-01',$2,'ABCDEF01',$3,$4,now()-interval '25 hours')",[randomUUID(),randomUUID(),{status:'ok'},student]);
+  const recent=(await request('/violations/recent-students','GET',undefined,sessions.GUARD)).body.data;
+  assert.equal(recent.length,8);assert.equal(new Set(recent.map(item=>item.id)).size,8);assert.equal(recent[0].id,recentIds[5]);assert.equal(recent[0].studentNo,'RECENT-5');
+  assert.ok(!recent.some(item=>item.id===student));assert.ok(!JSON.stringify(recent).includes('ABCDEF01'));
+  assert.deepEqual(Object.keys(recent[0]).sort(),['course','id','name','photo','scannedAt','section','studentNo','year']);
+  await db.query('DELETE FROM scan_events');await db.query('DELETE FROM students WHERE id=ANY($1::uuid[])',[recentIds]);
+  for(const route of ['/violations','/violations/types','/violations/students?search=test'])assert.equal((await request(route,'GET',undefined,sessions.REGISTRAR)).status,403);
+  assert.equal((await request('/users','GET',undefined,sessions.GUARD)).status,403);
+  const types=(await request('/violations/types','GET',undefined,sessions.GUARD)).body.data.types;assert.equal(types.length,22);assert.equal(new Set(types.map(type=>type.name.toLowerCase())).size,22);
+  const body={studentId:student,offenseCode:'OTHER',customOffense:"<script>alert(1)</script> O'Connor",remarks:"'; DROP TABLE students; --",validFrom:'2026-10-18',validUntil:'2026-10-19',offenseDate:'2026-10-18',requestId:randomUUID(),reportedBy:actors.ADMIN,status:'CLEARED'};
+  assert.equal((await request('/violations','POST',body,sessions.GUARD,{Origin:'https://untrusted.example'})).status,403);
+  assert.equal((await request('/violations','POST',body,sessions.GUARD,{'X-CSRF-Token':''})).status,403);
+  assert.equal((await request('/violations','POST',{...body,offenseCode:'NONEXISTENT'},sessions.GUARD)).status,422);
+  const created=await request('/violations','POST',body,sessions.GUARD);assert.equal(created.status,201);const id=created.body.data.id;
+  assert.equal((await request('/violations','POST',body,sessions.GUARD)).status,200);
+  assert.equal((await request('/violations','POST',{...body,remarks:'Changed'},sessions.GUARD)).status,409);
+  const record=(await request('/violations/'+id,'GET',undefined,sessions.DISCIPLINE)).body.data;
+  assert.equal(record.status,'ACTIVE');assert.equal(record.reportedBy,'GUARD');assert.equal(record.description,body.customOffense);assert.equal(record.remarks,body.remarks);
+  assert.equal((await request('/violations/summary','GET',undefined,sessions.REGISTRAR)).status,403);
+  const summary=async(role='DISCIPLINE')=>(await request('/violations/summary','GET',undefined,sessions[role])).body.data;
+  assert.equal((await summary()).pending,1);assert.equal((await summary()).unread,1);
+  assert.equal((await request('/violations/'+id+'/read','POST',{},sessions.DISCIPLINE,{'X-CSRF-Token':''})).status,403);
+  assert.equal((await request('/violations/'+id+'/read','POST',{},sessions.DISCIPLINE)).status,200);
+  assert.equal((await request('/violations/'+id+'/read','POST',{},sessions.DISCIPLINE)).status,200);
+  assert.equal((await summary()).unread,0);assert.equal((await summary()).pending,1);assert.equal((await summary('ADMIN')).unread,1);
+  const note={remarks:'Reviewed with student. <script>test</script>',requestId:randomUUID(),authorId:actors.ADMIN};
+  assert.equal((await request('/violations/'+id+'/remarks','POST',note,sessions.GUARD)).status,403);
+  assert.equal((await request('/violations/'+id+'/remarks','POST',{...note,remarks:' '},sessions.DISCIPLINE)).status,422);
+  assert.equal((await request('/violations/'+id+'/remarks','POST',note,sessions.DISCIPLINE,{'X-CSRF-Token':''})).status,403);
+  assert.equal((await request('/violations/'+id+'/remarks','POST',note,sessions.DISCIPLINE)).status,201);
+  assert.equal((await request('/violations/'+id+'/remarks','POST',note,sessions.DISCIPLINE)).status,200);
+  assert.equal((await request('/violations/'+id+'/remarks','POST',{...note,remarks:'Different'},sessions.DISCIPLINE)).status,409);
+  const history=(await request('/violations/'+id+'/history','GET',undefined,sessions.DISCIPLINE)).body.data;
+  assert.equal(history.records.length,2);assert.equal(history.records[0].author,'DISCIPLINE');assert.equal(history.records[0].remarks,note.remarks);
+  assert.equal((await request('/violations?status=ACTIVE','GET',undefined,sessions.DISCIPLINE)).body.data.records[0].isNew,false);
+  assert.equal((await request('/violations?status=ACTIVE','GET',undefined,sessions.ADMIN)).body.data.records[0].isNew,true);
+  assert.equal((await request('/violations/'+randomUUID(),'GET',undefined,sessions.DISCIPLINE)).status,404);
+  assert.equal((await request('/violations/'+id+'/clear','PATCH',{},sessions.GUARD)).status,403);
+  for(let i=0;i<24;i++)await db.query('INSERT INTO violations(id,student_id,reported_by,description) VALUES($1,$2,$3,$4)',[randomUUID(),student,actors.GUARD,'Legacy report '+i]);
+  const first=await request('/violations?pageSize=10','GET',undefined,sessions.DISCIPLINE),second=await request('/violations?pageSize=10&page=2','GET',undefined,sessions.DISCIPLINE);
+  assert.equal(first.body.data.pagination.total,25);assert.equal(first.body.data.records.length,10);assert.ok(!second.body.data.records.some(row=>first.body.data.records.some(other=>row.id===other.id)));
+  assert.equal(first.headers.get('cache-control'),'no-store');
+  assert.equal((await request('/violations?offense=OTHER','GET',undefined,sessions.DISCIPLINE)).body.data.pagination.total,1);
+  assert.equal((await request('/violations?search='+encodeURIComponent("' OR 1=1 --"),'GET',undefined,sessions.DISCIPLINE)).body.data.pagination.total,0);
+  assert.equal((await request('/violations/students?search='+encodeURIComponent("O'Connor"),'GET',undefined,sessions.GUARD)).body.data[0].id,student);
+  assert.equal((await request('/violations?pageSize=999999','GET',undefined,sessions.ADMIN)).status,422);
+  assert.equal((await request('/violations/'+id+'/clear','PATCH',{},sessions.DISCIPLINE)).status,200);
+  assert.equal((await summary()).pending,24);assert.equal((await summary()).cleared,1);
+  assert.equal((await request('/violations/'+id+'/history','GET',undefined,sessions.DISCIPLINE)).body.data.records[0].action,'CLEARED');
+  assert.equal((await request('/violations/'+id+'/clear','PATCH',{},sessions.DISCIPLINE)).status,409);
+  assert.equal((await db.query("SELECT count(*)::int n FROM audit_logs WHERE target_id=$1 AND action IN ('VIOLATION_REPORTED','VIOLATION_CLEARED')",[id])).rows[0].n,2);
+  const deletion=await db.query('SELECT count(*)::int n FROM students');assert.equal(deletion.rows[0].n,1);
+  await request('/auth/logout','POST',{},sessions.GUARD);assert.equal((await request('/violations','GET',undefined,sessions.GUARD)).status,401);
+  for(let i=0;i<31;i++)var limited=await request('/auth/login','POST',{username:'missing.user',password:'wrong'});
+  assert.equal(limited.status,429);
+  await db.query('ALTER TABLE violations RENAME TO unavailable_violations');
+  const failure=await request('/violations','POST',{...body,requestId:randomUUID()},sessions.ADMIN);assert.equal(failure.status,503);assert.ok(!JSON.stringify(failure.body).includes('SELECT'));
+});

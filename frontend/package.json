@@ -4,12 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "branding:build": "node scripts/build-branding.mjs",
+    "test:offenses": "node scripts/verify-offenses.mjs",
+    "test:gate": "node scripts/verify-gate.mjs",
+    "test:scanner": "node scripts/verify-scanner.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test:ui": "node scripts/verify-ui.mjs",
     "test:guard": "node scripts/verify-guard.mjs",
-    "test:loading": "node scripts/verify-loading.mjs"
+    "test:loading": "node scripts/verify-loading.mjs",
+    "test:accounts": "node scripts/verify-accounts.mjs",
+    "test:modals": "node scripts/verify-modals.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.46.0",

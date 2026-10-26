@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { timingSafeEqual } = require('node:crypto');
+const { timingSafeEqual, createHash } = require('node:crypto');
 const { ApiError } = require('../../shared/middleware/error-handler');
 const { createAuthService } = require('./auth.service');
 
@@ -16,6 +16,9 @@ function createAuth(db, config) {
   }
   async function requireAuth(req, res, next) {
     req.auth = await service.session(req.cookies[cookieName]);
+    req.sessionHash = createHash('sha256').update(req.cookies[cookieName]).digest('hex');
+    const passwordRoute = req.baseUrl === '/api/auth' && ['/me', '/logout', '/password'].includes(req.path);
+    if (req.auth.user.mustChangePassword && !passwordRoute) throw new ApiError(403, 'PASSWORD_CHANGE_REQUIRED', 'Set your own password before accessing school records.');
     if (!['GET','HEAD','OPTIONS'].includes(req.method)) {
       originGuard(req, res, () => {});
       const actual = Buffer.from(req.get('X-CSRF-Token') || '');
@@ -33,7 +36,7 @@ function createAuth(db, config) {
     if (typeof username !== 'string' || !/^[a-zA-Z0-9_.-]{3,50}$/.test(username) || typeof password !== 'string' || password.length < 1 || Buffer.byteLength(password) > 72 || typeof remember !== 'boolean') throw new ApiError(422, 'INVALID_INPUT', 'Enter a valid username and password.');
     const result = await service.login(username, password, remember);
     if (req.cookies[cookieName]) await service.logout(req.cookies[cookieName]);
-    res.cookie(cookieName, result.token, { ...cookie, ...(remember ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}) });
+    res.cookie(cookieName, result.token, { ...cookie, ...(remember && !result.user.mustChangePassword ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}) });
     const { token, ...data } = result;
     res.json({ success: true, message: 'Signed in.', data });
   });
@@ -43,13 +46,15 @@ function createAuth(db, config) {
     res.clearCookie(cookieName, cookie);
     res.json({ success: true, message: 'Signed out.', data: null });
   });
-  router.post('/password', requireAuth, async (req, res) => {
+  router.post('/password', requireAuth, rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerator: (req) => req.auth.user.id,
+    standardHeaders: 'draft-8', legacyHeaders: false,
+    message: { success: false, message: 'Too many password attempts. Try again later.', error: { code: 'PASSWORD_RATE_LIMIT' } } }), async (req, res) => {
     const { currentPassword, newPassword } = req.body || {};
     if (typeof currentPassword !== 'string' || Buffer.byteLength(currentPassword) > 72 || typeof newPassword !== 'string' || newPassword.length < 12 || Buffer.byteLength(newPassword) > 72) throw new ApiError(422, 'INVALID_PASSWORD', 'Use a new password of at least 12 characters and at most 72 bytes.');
     await service.changePassword(req.auth.user.id, currentPassword, newPassword);
     res.clearCookie(cookieName, cookie);
     res.json({ success: true, message: 'Password changed. Sign in again.', data: null });
   });
-  return { router, requireAuth, allow };
+  return { router, requireAuth, allow, checkSession: req=>service.session(req.cookies[cookieName]) };
 }
 module.exports = { createAuth };

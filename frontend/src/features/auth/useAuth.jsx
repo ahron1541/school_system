@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, setCsrfToken } from '../../shared/lib/api';
+import { clearUserDrafts } from '../../shared/hooks/useFormDraft';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -15,6 +16,6 @@ export function useAuth() {
     return () => { active = false; window.removeEventListener('session-expired', expired); };
   }, []);
   async function login(values) { setNotice(''); const data = await api('/auth/login', { method: 'POST', body: values }); setCsrfToken(data.csrfToken); setError(''); setUser(data.user); }
-  async function logout() { await api('/auth/logout', { method: 'POST', body: {} }); signedOut(); }
+  async function logout() { await api('/auth/logout', { method: 'POST', body: {} }); clearUserDrafts(user.id); signedOut(); }
   return { user, loading, error, notice, login, logout, signedOut };
 }

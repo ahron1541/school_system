@@ -2,11 +2,20 @@
   "name": "school-gate-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Stage 1: device communication prototype",
+  "description": "Local school gate API with persistent authentication, records and RFID ingestion",
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
+    "repo:check": "node scripts/check-repository-safety.js",
+    "test:violations": "node --env-file=.env --test src/features/violations/violations.test.js",
+    "test:gate:load": "node --env-file=.env scripts/gate-load-test.js",
+    "test:gate": "node --env-file=.env --test src/features/gate/gate.test.js",
+    "gate:scan": "node --env-file=.env scripts/gate-simulator.js",
+    "test:students": "node --env-file=.env --test src/features/students/students.test.js",
+    "test:lan": "node --test src/app/lan.test.js",
+    "scanner:setup": "node scripts/setup-admin-scanner.js",
+    "test:scanner": "node --env-file=.env --test src/features/admin-scanner/admin-scanner.test.js",
     "db:check": "node --env-file=.env scripts/check-database.js",
     "scan": "node --env-file=.env scripts/record-scan.js",
     "db:local": "node scripts/local-db.mjs",
@@ -14,8 +23,9 @@
     "db:seed": "node --env-file=.env scripts/seed-accounts.js",
     "setup": "node scripts/setup-env.js",
     "dev": "node --watch --env-file=.env src/server.js",
+    "dev:lan": "node --watch --env-file=.env --require ./scripts/enable-lan.cjs src/server.js",
     "start": "node --env-file=.env src/server.js",
-    "test": "node --env-file=.env --test src/features/devices/device.test.js src/features/system/system.test.js src/features/auth/auth.integration.test.js src/features/guard/guard.integration.test.js",
+    "test": "node --env-file=.env --test --test-concurrency=1 src/features/devices/device.test.js src/features/system/system.test.js src/features/auth/auth.integration.test.js src/features/guard/guard.integration.test.js src/features/entry-logs/entry.integration.test.js src/features/users/users.integration.test.js src/features/gate/gate.test.js",
     "device:test": "node --env-file=.env scripts/device-test.js"
   },
   "dependencies": {
@@ -25,7 +35,7 @@
     "express-rate-limit": "^8.7.0",
     "helmet": "^8.3.0",
     "pg": "^8.23.0",
-    "sharp": "^0.35.4"
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "embedded-postgres": "17.10.0-beta.17"

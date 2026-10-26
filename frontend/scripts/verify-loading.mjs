@@ -16,6 +16,7 @@ let studentDelay = 1800;
 let failStudents = false;
 let eventDelay = 2200;
 let guardDelay = 1000;
+let readerConnection = 'never_seen';
 let reports = [];
 const student = { id: '00000000-0000-4000-8000-000000000001', name: 'Loading Test Student', studentNo: 'LOADING-TEST', course: 'Test course', year: '1', section: 'A', uid: '', active: true, initials: 'LT', photo: '/api/students/00000000-0000-4000-8000-000000000001/photo' };
 const actor = { id: 'test-admin', username: 'testadmin', fullName: 'Test Administrator', role: 'ADMIN' };
@@ -36,7 +37,7 @@ await context.route('**/api/**', async (route) => {
   if (path === '/api/violations' && method === 'POST') { await pause(900); reports = [{ id: 'report-1', studentId: student.id, studentNo: student.studentNo, name: student.name, description: route.request().postDataJSON().description, status: 'ACTIVE', reportedBy: actor.fullName, createdAt: new Date().toISOString() }]; return reply(route, { id: 'report-1' }, 201); }
   if (path.endsWith('/clear')) { await pause(900); reports[0].status = 'CLEARED'; return reply(route, null); }
   if (path === '/api/system/status') { await pause(800); return reply(route, { api: { state: 'connected' }, database: { state: 'connected', latencyMs: 4 }, device: { state: 'never_seen', deviceId: 'gate-01' }, checkedAt: new Date().toISOString(), sync: { pending: 0 } }); }
-  if (path.startsWith('/api/guard/')) { await pause(guardDelay); return reply(route, { scan: null, totals: { entries: 0, exits: 0, alerts: 0 }, recent: [], serverTime: new Date().toISOString(), device: { deviceId: 'gate-01', connection: 'never_seen' } }); }
+  if (path.startsWith('/api/guard/')) { await pause(guardDelay); return reply(route, { scan: null, totals: { entries: 0, exits: 0, alerts: 0 }, recent: [], serverTime: new Date().toISOString(), device: { deviceId: 'gate-01', connection: readerConnection } }); }
   return reply(route, null, 404);
 });
 await mkdir('artifacts', { recursive: true });
@@ -117,7 +118,16 @@ try {
   assert.equal(animation, 'none');
   await page.screenshot({ path: 'artifacts/guard-loading.png', fullPage: true });
   guardDelay = 0;
+  await expect(page.getByRole('heading', { name: 'Waiting for reader connection' })).toBeVisible();
+  readerConnection = 'online';
   await expect(page.getByRole('heading', { name: 'Ready for the next scan' })).toBeVisible();
+  readerConnection = 'offline';
+  await expect(page.getByRole('heading', { name: 'Reader disconnected' })).toBeVisible();
+  const display = await context.newPage();
+  await display.goto(base + '/?display=1');
+  await expect(display.getByRole('heading', { name: 'Reader disconnected' })).toBeVisible();
+  await expect(display.getByText('Please see the guard.', { exact: true })).toBeVisible();
+  await display.close();
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await page.screenshot({ path: 'artifacts/sidebar-header-dark.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });

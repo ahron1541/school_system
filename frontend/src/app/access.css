@@ -61,7 +61,7 @@
 [data-theme=dark] .page-heading p, [data-theme=dark] .metric-label, [data-theme=dark] .status-note, [data-theme=dark] dt, [data-theme=dark] .service-line > span:first-child, [data-theme=dark] .service-detail p, [data-theme=dark] .database-summary p, [data-theme=dark] .latest-person > span:last-child, [data-theme=dark] .person-button small, [data-theme=dark] .cell-small, [data-theme=dark] .table-footer, [data-theme=dark] .chart-column > span, [data-theme=dark] .chart-grid, [data-theme=dark] .chart-key, [data-theme=dark] .workspace-label, [data-theme=dark] .eyebrow, [data-theme=dark] .count-label, [data-theme=dark] .footnote { color: #a6b0b6; }
 [data-theme=dark] .status-connected, [data-theme=dark] .status-online, [data-theme=dark] .direction-in, [data-theme=dark] .text-link { color: #8dceab; }
 [data-theme=dark] .status-not_configured, [data-theme=dark] .status-invalid_configuration { color: #dfbe7c; }
-[data-theme=dark] .status-disconnected, [data-theme=dark] .status-offline { color: #edaaa0; }
+[data-theme=dark] .status-disconnected, [data-theme=dark] .status-offline, [data-theme=dark] .status-degraded { color: #edaaa0; }
 [data-theme=dark] .status-unknown, [data-theme=dark] .status-never_seen, [data-theme=dark] .direction-out { color: #aeb7c2; }
 [data-theme=dark] .enrolled { background: #2a4535; color: #a6d7b7; }
 [data-theme=dark] .alert-link, [data-theme=dark] .notice { background: #393224; color: #edce95; border-color: #5c4b2f; }

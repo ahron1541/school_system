@@ -13,6 +13,7 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
     const error = new Error(result.message || 'Request failed.');
     error.status = response.status;
     error.code = result.error?.code;
+    error.fields = result.error?.fields;
     if (response.status === 401 && path !== '/auth/login' && csrfToken) window.dispatchEvent(new Event('session-expired'));
     throw error;
   }

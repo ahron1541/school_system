@@ -1,0 +1,80 @@
+.student-sections { display:flex; flex-direction:row; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--border); margin:0 0 20px; }
+.student-sections button { border:0; border-bottom:2px solid transparent; border-radius:0; padding:10px 12px; background:transparent; color:var(--muted); font:inherit; font-size:13px; cursor:pointer; }
+.student-sections button[aria-current=page] { border-color:currentColor; color:var(--text); font-weight:600; }
+.student-editor h3 { font-size:16px; margin:0 0 16px; }
+.student-editor textarea { width:100%; min-width:0; padding:8px 10px; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:inherit; font:inherit; resize:vertical; }
+.profile-group { border:0; border-top:1px solid var(--border); margin:20px 0; padding:16px 0 0; min-width:0; }
+.profile-group legend { padding:0 8px 0 0; font-size:14px; font-weight:600; }
+.profile-photo-field { display:flex; align-items:center; gap:16px; margin:0 0 20px; }
+.profile-photo-field>.photo-frame { width:80px; height:100px; flex:none; overflow:hidden; }
+.profile-photo-field img { width:100%; height:100%; object-fit:cover; }
+.profile-photo-field>div { min-width:0; }
+.profile-photo-field label { display:block; margin-bottom:8px; font-size:13px; }
+.profile-photo-field input { max-width:100%; font-size:12px; }
+.student-editor .field-error { color:var(--danger,#b42318); font-size:12px; font-weight:400; }
+.student-profile-values { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:16px 0; }
+.student-profile-values div { min-width:0; }
+.student-profile-values dt { color:var(--muted); font-size:12px; margin-bottom:4px; }
+.student-profile-values dd { margin:0; font-size:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.student-filters { flex-wrap:wrap; gap:8px; }
+.student-filters select { max-width:180px; }
+.student-list .person-button { text-align:left; }
+.student-list td { overflow-wrap:anywhere; }
+.student-list .rfid-status { font-size:12px; white-space:nowrap; }
+.student-registration { max-width:880px; margin:0 auto; }
+.registration-return { margin-bottom:24px; }
+.registration-heading h1 { font-size:26px; margin:0 0 8px; }
+.registration-heading p { color:var(--muted); font-size:13px; }
+.registration-progress { list-style:none; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); padding:0; margin:24px 0; border-bottom:1px solid var(--border); }
+.registration-progress li { min-width:0; border-bottom:2px solid transparent; }
+.registration-progress li[aria-current=step] { border-color:var(--accent); }
+.registration-progress button { border:0; background:none; color:var(--muted); display:flex; align-items:center; gap:8px; padding:12px 4px; font:inherit; font-size:13px; width:100%; text-align:left; cursor:pointer; }
+.registration-progress button:disabled { cursor:default; opacity:.75; }
+.registration-progress li[aria-current=step] button { color:var(--text); font-weight:600; opacity:1; }
+.step-number { display:flex; align-items:center; justify-content:center; width:24px; height:24px; flex:none; border:1px solid var(--border); border-radius:50%; }
+.registration-progress li[aria-current=step] .step-number { background:var(--accent); color:white; border-color:var(--accent); }
+.registration-step-title { font-size:20px; margin:28px 0 24px; }
+.student-registration .modal-grid { margin:20px 0; }
+.optional-label { color:var(--muted); font-weight:400; font-size:11px; }
+.registration-details { border-top:1px solid var(--border); margin-top:24px; padding:20px 0; }
+.registration-details summary { cursor:pointer; font-weight:600; font-size:14px; }
+.registration-details summary small { font-weight:400; color:var(--muted); margin-left:8px; }
+.registration-actions { background:var(--surface,#fff); display:flex; justify-content:space-between; gap:16px; padding:16px 0; margin-top:32px; border-top:1px solid var(--border); }
+.student-registration input,.student-registration textarea,.student-registration select { scroll-margin-block:100px; }
+.registration-review { border-top:1px solid var(--border); padding:20px 0; }
+.registration-review header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.registration-review header h3 { margin:0; }
+.registration-review .student-profile-values { gap:16px 32px; }
+.registration-success { padding:40px 0; }
+.registration-success>svg { color:var(--accent); }
+.registration-success h1 { font-size:26px; }
+.registration-success p { line-height:1.8; }
+.registration-success-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+.student-pagination { display:flex; align-items:center; gap:8px; }
+.student-list .student-filters { justify-content:flex-start; }
+.student-list .student-filters .search-field { flex:1; max-width:440px; }
+[data-theme=dark] .registration-progress li[aria-current=step] .step-number { color:#172b21; }
+[data-theme=dark] .student-editor .field-error { color:#f0b4ab; }
+@media(max-width:640px) {
+  .registration-progress button { flex-direction:column; gap:6px; font-size:11px; text-align:center; }
+  .student-registration .modal-grid { grid-template-columns:1fr; }
+  .registration-heading h1 { font-size:24px; }
+  .registration-actions .button { min-height:44px; }
+  .registration-success-actions { flex-direction:column; align-items:stretch; }
+}
+@media(max-width:640px) {
+  .student-profile-values { grid-template-columns:1fr; }
+  .student-list thead { display:none; }
+  .student-list table,.student-list tbody,.student-list tr,.student-list td { display:block; width:100%; }
+  .student-list .table-scroll table { min-width:0; white-space:normal; }
+  .student-list .person-button { max-width:100%; }
+  .student-list .person-button>span:last-child { min-width:0; overflow-wrap:anywhere; }
+  .student-list tr { border-bottom:1px solid var(--border); padding:12px 0; }
+  .student-list td { border:0; padding:6px 8px; height:auto; }
+  .student-list td[data-label]::before { content:attr(data-label) ': '; font-size:12px; color:var(--muted); }
+  .student-list .table-scroll { overflow:visible; }
+  .student-list .student-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .student-list .student-filters .search-field { grid-column:1/-1; width:100%; }
+  .student-list .student-filters select { width:100%; max-width:none; }
+  .student-list .student-filters>label { min-width:0; }
+}

@@ -4,6 +4,8 @@ const { readEnv } = require('./shared/config/env');
 try {
   const config = readEnv();
   const app = createApp(config);
+  const reconciliation=setInterval(()=>app.locals.gate?.reconcile().catch(()=>console.error('[PRESENCE] Reconciliation unavailable; will retry.')),30000);
+  reconciliation.unref();
   const server = app.listen(config.port, config.host, () => {
     console.log(`[SERVER] Listening on http://${config.host}:${config.port}`);
     console.log('[SERVER] Staff access requires sign-in. Records are stored in local PostgreSQL.');
@@ -13,6 +15,7 @@ try {
     process.exitCode = 1;
   });
   function shutdown() {
+    clearInterval(reconciliation);
     server.close(async () => { await app.locals.db.close(); process.exit(0); });
     setTimeout(() => process.exit(1), 5000).unref();
   }

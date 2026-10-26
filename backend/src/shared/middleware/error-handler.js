@@ -11,12 +11,12 @@ function errorHandler(error, req, res, next) {
   let failure = error;
   if (error.type === 'entity.parse.failed') failure = new ApiError(400, 'INVALID_JSON', 'Body must contain valid JSON.');
   if (error.type === 'entity.too.large') failure = new ApiError(413, 'BODY_TOO_LARGE', 'Request body exceeds the allowed size.');
-  if (error.status === 415) failure = new ApiError(415, 'UNSUPPORTED_ENCODING', 'Use uncompressed UTF-8 JSON.');
+  if (!(error instanceof ApiError) && error.status === 415) failure = new ApiError(415, 'UNSUPPORTED_ENCODING', 'Use uncompressed UTF-8 request data.');
   if (!(failure instanceof ApiError)) {
     console.error('[ERROR] Unexpected request failure.');
     failure = new ApiError(500, 'INTERNAL_ERROR', 'An unexpected server error occurred.');
   }
-  res.status(failure.status).json({ success: false, message: failure.message, error: { code: failure.code } });
+  res.status(failure.status).json({ success: false, message: failure.message, error: { code: failure.code, ...(failure.fields ? { fields: failure.fields } : {}) } });
 }
 
 module.exports = { ApiError, errorHandler };

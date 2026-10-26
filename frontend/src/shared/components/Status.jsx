@@ -1,6 +1,6 @@
 import Photo from './Photo';
 
-const labels = { connected: 'Connected', disconnected: 'Disconnected', not_configured: 'Not configured', invalid_configuration: 'Configuration error', online: 'Online', offline: 'Offline', never_seen: 'Awaiting device', checking: 'Checking', unknown: 'Unavailable' };
+const labels = { connected: 'Connected', disconnected: 'Disconnected', not_configured: 'Not configured', invalid_configuration: 'Configuration error', online: 'Online', degraded: 'Needs attention', offline: 'Offline', never_seen: 'Awaiting device', checking: 'Checking', unknown: 'Unavailable' };
 
 export function Status({ state = 'unknown' }) {
   return <span className={`status status-${state}`}><span className="status-dot" />{labels[state] || 'Unavailable'}</span>;

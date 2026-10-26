@@ -13,11 +13,13 @@ function studentsRoutes(db, auth) {
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id)) throw new ApiError(422, 'INVALID_ID', 'Invalid student ID.');
     next();
   });
-  router.get('/:id/photo', async (req, res) => res.type('image/jpeg').send(await photos.read(req.params.id)));
+  router.get('/:id/photo', async (req, res) => res.type('image/jpeg').send(await photos.read(req.params.id, req.query.size === 'thumbnail')));
   router.put('/:id/photo', auth.allow('ADMIN','REGISTRAR'), express.raw({ type: ['image/jpeg','image/png','image/webp'], limit: '2mb', inflate: false }), async (req, res) => {
     res.json({ success: true, message: 'Student photo saved.', data: await photos.save(req.params.id, req.body, req.auth.user.id) });
   });
-  router.get('/', async (req,res) => res.json({ success:true, message:'Students retrieved.', data:await service.list() }));
+  const privateAccess = req => ['ADMIN', 'REGISTRAR'].includes(req.auth.user.role);
+  router.get('/', async (req,res) => res.json({ success:true, message:'Students retrieved.', data:await service.list(privateAccess(req)) }));
+  router.get('/:id', async (req,res) => res.json({ success:true, message:'Student retrieved.', data:await service.read(req.params.id, privateAccess(req)) }));
   async function save(req,res) {
     const input = validateStudent(req.body);
     if (req.params.id && !/^[a-f0-9-]{36}$/.test(req.params.id)) throw new ApiError(422,'INVALID_ID','Invalid student ID.');

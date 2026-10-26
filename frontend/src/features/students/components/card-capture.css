@@ -1,0 +1,5 @@
+.card-capture { grid-column: 1 / -1; min-width: 0; border-block: 1px solid var(--border, #dce2e5); padding: 12px 0; display: grid; gap: 8px; font-size: 14px; }
+.card-capture-heading, .card-capture-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.card-capture-heading { justify-content: space-between; }
+.captured-uid { overflow-wrap: anywhere; font-size: 16px; }
+.card-capture .notice { margin: 0; }
